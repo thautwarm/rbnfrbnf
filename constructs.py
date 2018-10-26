@@ -5,8 +5,7 @@ import typing as t
 
 
 class Node(ast.expr):
-    col_offset = 1
-    lineno = 1
+    pass
 
 
 class ClauseC(Node):
