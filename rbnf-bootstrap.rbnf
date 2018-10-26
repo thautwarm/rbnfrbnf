@@ -1,0 +1,82 @@
+[python] import constructs.[*]
+# lexer definition
+auto_const := '::=' ':=' '<<' '->' '=>'
+auto_const := '=' '<' '>' '/' '|' '{' '}' '[' ']' '(' ')' '+' '*' '.' ',' ';' '?'
+Str        := R'[A-Z]\'([^\\\']+|\\.)*?\'|\'([^\\\']+|\\.)*?\''
+Name       := R'[a-zA-Z_\u4e00-\u9fa5][a-zA-Z0-9_\u4e00-\u9fa5]*'
+Int        := R'\d+'
+Space      := R'\s+'
+Comment    := R'(#.*)|(((/\*)+?[\w\W]+?(\*/)+))'
+kword cast := 'rewrite' 'when' 'import' 'extern' 'constvalue'
+
+# helper parser definition
+ignore [Comment Space]
+
+CodeItem   ::= _=_
+    when _.colno > state.ctx['begin_sign'].colno
+    -> _
+
+Clause     ::=
+    begin_sign = ('rewrite' | '->' | 'when')
+    codes=(CodeItem+)
+    -> ClauseC(begin_sign, codes)
+
+# syntax node parser definition
+Lexer      ::=
+    [is_const='constvalue'] name=Name ':=' lexers=(Str+ | 'extern') ';'
+    -> LexerC(name, lexers, bool(is_const))
+
+Parser    ::=
+    name=Name '::=' ['|'] impl=TopParser ';'
+    -> ParserC(name, impl)
+
+TopParser ::=
+    brs<<AndParser ('|' brs<<AndParser)*
+    -> OrParser(brs) if len(brs) > 1 else brs[0]
+
+AndParser ::=
+    exprs=(ClauseExpr+)
+    -> AndParser(exprs) if len(exprs) > 2 else exprs[0]
+
+ClauseExpr::=
+    [bind_name=Name (bind='=' | push='<<')]
+    expr=Expr ['{' rep=(Int{1 2}) '}'
+              | star='*'
+              | plus='+'
+              | '=>' rewrite=Name
+              | '?' predicate=Name]
+    ->
+    if rep:
+        expr = RepC(rep, expr)
+    elif star:
+        expr = StarC(expr)
+    elif plus:
+        expr = PlusC(expr)
+    elif rewrite:
+        expr = RewriteC(rewrite, expr)
+    elif predicate:
+        expr = PredicateC(predicate, expr)
+    if bind_name:
+        expr = (BindC if bind else PushC)(bind_name, expr)
+    return expr
+
+Expr ::=
+    | '(' nested=TopParser ')'
+    | '[' optional=TopParser ']'
+    | ref=Name
+    | literal=Str
+    ->
+    if nested:
+        return nested
+    if optional:
+        return OptionalC(optional)
+    if ref:
+        return RefC(ref)
+    if literal:
+        return LiteralC(literal)
+
+
+Module ::= suites = TopParser+ -> suites;
+    
+         
+
