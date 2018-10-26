@@ -33,7 +33,7 @@ class LexerC(Node):
         self.lineno = name.lineno
         self.col_offset = name.colno
         self.name = name.value
-        self.lexers = [each.valuue for each in lexers] if isinstance(
+        self.lexers = [each.value for each in lexers] if isinstance(
             lexers, list) else None
         self.is_const = is_const
 
@@ -210,3 +210,13 @@ class LiteralC(Node):
             self.prefix = value[0]
 
     _fields = ('prefix', 'value')
+
+
+class ModuleC(Node):
+    seqs: t.List[t.Union[ParserC, LexerC]]
+
+    def __init__(self, seqs):
+        super().__init__()
+        self.seqs = seqs
+
+    _fields = ('seqs', )

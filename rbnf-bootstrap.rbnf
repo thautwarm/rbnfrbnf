@@ -18,7 +18,7 @@ CodeItem   ::= _=_
 
 Clause     ::=
     begin_sign = ('rewrite' | '->' | 'when')
-    codes=(CodeItem+)
+    (codes << CodeItem)+
     -> ClauseC(begin_sign, codes)
 
 # syntax node parser definition
@@ -32,33 +32,33 @@ Parser    ::=
 
 TopParser ::=
     brs<<AndParser ('|' brs<<AndParser)*
-    -> OrParser(brs) if len(brs) > 1 else brs[0]
+    -> OrParser(brs) if len(brs) is not 1 else brs[0]
 
 AndParser ::=
-    exprs=(ClauseExpr+)
-    -> AndParser(exprs) if len(exprs) > 2 else exprs[0]
+    (exprs<<ClauseExpr)+
+    -> AndParser(exprs) if len(exprs) is not 1 else exprs[0]
 
 ClauseExpr::=
     [bind_name=Name (bind='=' | push='<<')]
     expr=Expr ['{' rep=(Int{1 2}) '}'
               | star='*'
               | plus='+'
-              | '=>' rewrite=Name
+              | '=>' rew=Name
               | '?' predicate=Name]
     ->
-    if rep:
-        expr = RepC(rep, expr)
-    elif star:
-        expr = StarC(expr)
-    elif plus:
-        expr = PlusC(expr)
-    elif rewrite:
-        expr = RewriteC(rewrite, expr)
-    elif predicate:
-        expr = PredicateC(predicate, expr)
-    if bind_name:
-        expr = (BindC if bind else PushC)(bind_name, expr)
-    return expr
+        if rep:
+            expr = RepC(rep, expr)
+        elif star:
+            expr = StarC(expr)
+        elif plus:
+            expr = PlusC(expr)
+        elif rew:
+            expr = RewriteC(rew, expr)
+        elif predicate:
+            expr = PredicateC(predicate, expr)
+        if bind_name:
+            expr = (BindC if bind else PushC)(bind_name, expr)
+        return expr
 
 Expr ::=
     | '(' nested=TopParser ')'
@@ -66,17 +66,17 @@ Expr ::=
     | ref=Name
     | literal=Str
     ->
-    if nested:
-        return nested
-    if optional:
-        return OptionalC(optional)
-    if ref:
-        return RefC(ref)
-    if literal:
-        return LiteralC(literal)
+        if nested:
+            return nested
+        if optional:
+            return OptionalC(optional)
+        if ref:
+            return RefC(ref)
+        if literal:
+            return LiteralC(literal)
 
 
-Module ::= suites = TopParser+ -> suites;
+Module ::= (suites << (Lexer | Parser))+ -> ModuleC(suites);
     
          
 
