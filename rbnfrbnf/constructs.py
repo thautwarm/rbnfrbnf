@@ -1,25 +1,10 @@
 import ast
 from rbnf.core.Tokenizer import Tokenizer
-from rbnf.std.common import recover_codes
 import typing as t
 
 
 class Node(ast.expr):
     pass
-
-
-class ClauseC(Node):
-    begin_sign: Tokenizer
-    clause: str
-
-    def __init__(self, begin_sign: Tokenizer, clause: t.List[Tokenizer]):
-        super().__init__()
-        self.begin_sign = begin_sign
-        self.clause = recover_codes(clause)
-        self.lineno = begin_sign.lineno
-        self.col_offset = begin_sign.colno
-
-    _fields = ('begin_sign', 'clause')
 
 
 class LexerC(Node):
@@ -42,19 +27,15 @@ class LexerC(Node):
 class ParserC(Node):
     name: str
     impl: Node
-    clauses: t.Optional[t.List[ClauseC]]
-    is_recur: bool
 
-    def __init__(self, name: Tokenizer, impl, clauses, recur):
+    def __init__(self, name: Tokenizer, impl):
         super().__init__()
         self.lineno = name.lineno
         self.col_offset = name.colno
         self.name = name.value
         self.impl = impl
-        self.clauses = clauses
-        self.is_recur = bool(recur)
 
-    _fields = ('name', 'impl', 'clauses', 'is_recur')
+    _fields = ('name', 'impl')
 
 
 class OrParser(Node):

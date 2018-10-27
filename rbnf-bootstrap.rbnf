@@ -11,23 +11,17 @@ kword cast := 'rewrite' 'when' 'import' 'extern' 'constvalue' 'recur'
 # helper parser definition
 ignore [Comment Space]
 
-CodeItem   ::= _=_
-    when
-        state.ctx['begin_sign'].colno < tokens[state.end_index].colno
-    -> _
-
-
 # syntax node parser definition
 Lexer      ::=
     [is_const='constvalue'] name=Name ':=' lexers=(Str+ | 'extern') ';'
     -> LexerC(name, lexers, bool(is_const))
 
 Parser    ::=
-    [is_recur='recur'] name=Name '::='
+    name=Name '::='
     ['|']
     impl=ADTParser
     ';'
-    -> ParserC(name, impl, clauses, bool(is_recur))
+    -> ParserC(name, impl)
 
 ADTParser ::=
     | cases<<Case
@@ -83,7 +77,6 @@ Expr ::=
             return RefC(ref)
         if literal:
             return LiteralC(literal)
-
 
 Module ::= (';' | suites <<(Lexer | Parser))+ -> ModuleC(suites);
 

@@ -23,6 +23,7 @@ def add_semi_comma(text: str):
     return '\n'.join(_add_semi_comma(text))
 
 
+
 result = parse(
     add_semi_comma("""
 X := 'a'
@@ -33,12 +34,14 @@ recur F ::=
     | Case2 ?pre2 B C
 
 S ::= | S:  S a b c
-      | F:  S b c
-recur S ::= 
+      | F:  A b c
+    
+A ::= (?pre S a | B d)
+
+S ::= 
     | S1 a 
     | S2 b
-    
-    
+
 """)).result
 fix_missing_locations(result)
 pprint(result)
