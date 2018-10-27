@@ -1,4 +1,3 @@
-[python] import constructs.[*]
 # lexer definition
 auto_const := '::=' ':=' '<<' '->' '=>'
 auto_const := '=' '<' '>' '/' '|' '{' '}' '[' ']' '(' ')' '+' '*' '.' ',' ';' '?'
@@ -7,19 +6,16 @@ Name       := R'[a-zA-Z_\u4e00-\u9fa5][a-zA-Z0-9_\u4e00-\u9fa5]*'
 Int        := R'\d+'
 Space      := R'\s+'
 Comment    := R'(#.*)|(((/\*)+?[\w\W]+?(\*/)+))'
-kword cast := 'rewrite' 'when' 'import' 'extern' 'constvalue'
+kword cast := 'rewrite' 'when' 'import' 'extern' 'constvalue' 'recur'
 
 # helper parser definition
 ignore [Comment Space]
 
 CodeItem   ::= _=_
-    when _.colno > state.ctx['begin_sign'].colno
+    when
+        state.ctx['begin_sign'].colno < tokens[state.end_index].colno
     -> _
 
-Clause     ::=
-    begin_sign = ('rewrite' | '->' | 'when')
-    (codes << CodeItem)+
-    -> ClauseC(begin_sign, codes)
 
 # syntax node parser definition
 Lexer      ::=
@@ -27,10 +23,23 @@ Lexer      ::=
     -> LexerC(name, lexers, bool(is_const))
 
 Parser    ::=
-    name=Name '::=' ['|'] impl=TopParser ';'
-    -> ParserC(name, impl)
+    [is_recur='recur'] name=Name '::='
+    ['|']
+    impl=ADTParser
+    ';'
+    -> ParserC(name, impl, clauses, bool(is_recur))
 
-TopParser ::=
+ADTParser ::=
+    | cases<<Case
+      ('|' cases<<Case)*
+    | single=AndParser
+    -> single or ADTParserC(cases)
+
+Case ::=
+    name=Name impl=AndParser
+    -> CaseC(name, impl)
+
+OrParser ::=
     brs<<AndParser ('|' brs<<AndParser)*
     -> OrParser(brs) if len(brs) is not 1 else brs[0]
 
@@ -43,8 +52,7 @@ ClauseExpr::=
     expr=Expr ['{' rep=(Int{1 2}) '}'
               | star='*'
               | plus='+'
-              | '=>' rew=Name
-              | '?' predicate=Name]
+              | '=>' rew=Name]
     ->
         if rep:
             expr = RepC(rep, expr)
@@ -54,20 +62,21 @@ ClauseExpr::=
             expr = PlusC(expr)
         elif rew:
             expr = RewriteC(rew, expr)
-        elif predicate:
-            expr = PredicateC(predicate, expr)
         if bind_name:
             expr = (BindC if bind else PushC)(bind_name, expr)
         return expr
 
 Expr ::=
-    | '(' nested=TopParser ')'
-    | '[' optional=TopParser ']'
+    | '(' nested=OrParser ')'
+    | '[' optional=OrParser ']'
+    | '?' predicate=Name
     | ref=Name
     | literal=Str
     ->
         if nested:
             return nested
+        if predicate:
+            return PredicateC(predicate)
         if optional:
             return OptionalC(optional)
         if ref:
@@ -76,7 +85,5 @@ Expr ::=
             return LiteralC(literal)
 
 
-Module ::= (suites << (Lexer | Parser))+ -> ModuleC(suites);
-    
-         
+Module ::= (';' | suites <<(Lexer | Parser))+ -> ModuleC(suites);
 

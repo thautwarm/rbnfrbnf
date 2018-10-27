@@ -42,15 +42,19 @@ class LexerC(Node):
 class ParserC(Node):
     name: str
     impl: Node
+    clauses: t.Optional[t.List[ClauseC]]
+    is_recur: bool
 
-    def __init__(self, name: Tokenizer, impl):
+    def __init__(self, name: Tokenizer, impl, clauses, recur):
         super().__init__()
         self.lineno = name.lineno
         self.col_offset = name.colno
         self.name = name.value
         self.impl = impl
+        self.clauses = clauses
+        self.is_recur = bool(recur)
 
-    _fields = ('name', 'impl')
+    _fields = ('name', 'impl', 'clauses', 'is_recur')
 
 
 class OrParser(Node):
@@ -61,6 +65,30 @@ class OrParser(Node):
         self.brs = brs
 
     _fields = ('brs', )
+
+
+class CaseC(Node):
+    name: str
+    impl: Node
+
+    def __init__(self, name, impl):
+        super().__init__()
+        self.lineno = name.lineno
+        self.col_offset = name.colno
+        self.name = name.value
+        self.impl = impl
+
+    _fields = ('name', 'impl')
+
+
+class ADTParserC(Node):
+    cases: t.List[CaseC]
+
+    def __init__(self, cases):
+        super().__init__()
+        self.cases = cases
+
+    _fields = ('cases', )
 
 
 class AndParser(Node):
@@ -139,16 +167,14 @@ class RewriteC(Node):
 
 class PredicateC(Node):
     predicate: str
-    expr: Node
 
-    def __init__(self, predicate: Tokenizer, expr: Node):
+    def __init__(self, predicate: Tokenizer):
         super().__init__()
         self.lineno = predicate.lineno
         self.col_offset = predicate.colno
         self.predicate = predicate.value
-        self.expr = expr
 
-    _fields = ('expr', 'predicate')
+    _fields = ('predicate', )
 
 
 class BindC(Node):
