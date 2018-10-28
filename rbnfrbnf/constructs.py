@@ -9,7 +9,7 @@ class Node(ast.expr):
 
 class LexerC(Node):
     name: str
-    lexers: t.Optional[t.List[str]]
+    lexers: t.Optional[t.List['LiteralC']]
     is_const: bool
 
     def __init__(self, name: Tokenizer, lexers, is_const):
@@ -17,8 +17,7 @@ class LexerC(Node):
         self.lineno = name.lineno
         self.col_offset = name.colno
         self.name = name.value
-        self.lexers = [each.value for each in lexers] if isinstance(
-            lexers, list) else None
+        self.lexers = lexers
         self.is_const = is_const
 
     _fields = ('name', 'lexers', 'is_const')
@@ -38,7 +37,7 @@ class ParserC(Node):
     _fields = ('name', 'impl')
 
 
-class OrParser(Node):
+class OrParserC(Node):
     brs: t.List[Node]
 
     def __init__(self, brs: t.List[Node]):
@@ -72,7 +71,7 @@ class ADTParserC(Node):
     _fields = ('cases', )
 
 
-class AndParser(Node):
+class AndParserC(Node):
     pats: t.List[Node]
 
     def __init__(self, pats: t.List[Node]):
@@ -209,10 +208,10 @@ class LiteralC(Node):
         self.col_offset = lit.colno
         value: str = lit.value
         if value.startswith('\''):
-            self.value = value[1:-1]
+            self.value = eval(value)
             self.prefix = None
         else:
-            self.value = value[2:-1]
+            self.value = eval(value[1:])
             self.prefix = value[0]
 
     _fields = ('prefix', 'value')

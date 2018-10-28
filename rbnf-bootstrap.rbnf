@@ -13,8 +13,8 @@ ignore [Comment Space]
 
 # syntax node parser definition
 Lexer      ::=
-    [is_const='constvalue'] name=Name ':=' lexers=(Str+ | 'extern') ';'
-    -> LexerC(name, lexers, bool(is_const))
+    [is_const='constvalue'] name=Name ':=' (lexers=Str+ | extern_mark='extern') ';'
+    -> LexerC(name, extern_mark or [LiteralC(lexer) for lexer in lexers], bool(is_const))
 
 Parser    ::=
     name=Name '::='
@@ -30,16 +30,16 @@ ADTParser ::=
     -> single or ADTParserC(cases)
 
 Case ::=
-    name=Name impl=AndParser
+    name=Name ':' impl=AndParser
     -> CaseC(name, impl)
 
 OrParser ::=
     brs<<AndParser ('|' brs<<AndParser)*
-    -> OrParser(brs) if len(brs) is not 1 else brs[0]
+    -> OrParserC(brs) if len(brs) is not 1 else brs[0]
 
 AndParser ::=
-    (exprs<<ClauseExpr)+
-    -> AndParser(exprs) if len(exprs) is not 1 else exprs[0]
+    (exprs<<(Predicate | ClauseExpr))+
+    -> AndParserC(exprs) if len(exprs) is not 1 else exprs[0]
 
 ClauseExpr::=
     [bind_name=Name (bind='=' | push='<<')]
@@ -60,6 +60,9 @@ ClauseExpr::=
             expr = (BindC if bind else PushC)(bind_name, expr)
         return expr
 
+Predicate ::=
+    | '?' predicate=Name
+    -> PredicateC(predicate)
 Expr ::=
     | '(' nested=OrParser ')'
     | '[' optional=OrParser ']'
@@ -69,8 +72,6 @@ Expr ::=
     ->
         if nested:
             return nested
-        if predicate:
-            return PredicateC(predicate)
         if optional:
             return OptionalC(optional)
         if ref:

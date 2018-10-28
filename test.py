@@ -1,8 +1,11 @@
 import re
+import astpretty
+import pprint
 from rbnf.easy import Language, build_language, build_parser
 from ast import fix_missing_locations
-from astpretty import pprint
+
 from rbnfrbnf import constructs
+from rbnfrbnf.grammar_analysis.grammar_analyzer import Analyzer
 with open('rbnf-bootstrap.rbnf') as f:
     code = f.read()
 
@@ -14,14 +17,15 @@ parse = build_parser(rbnf2)
 
 
 def add_semi_comma(text: str):
+
     def _add_semi_comma(text_formal: str):
         for each in text_formal.split('\n'):
             if test_line_start.match(each):
                 yield ';'
             yield each
+        yield ';'
 
     return '\n'.join(_add_semi_comma(text))
-
 
 
 result = parse(
@@ -29,19 +33,23 @@ result = parse(
 X := 'a'
 A ::= ('b' | 'c' ('c' | 'a'))
 Z ::= 'b'
-recur F ::= 
-    | Case1 name << A => f ?pre1 
-    | Case2 ?pre2 B C
+F ::= 
+    | Case1 : name << A => f ?pre1 
+    | Case2 : ?pre2 B C
 
-S ::= | S:  S a b c
+D ::= | S:  S a b c
       | F:  A b c
     
-A ::= (?pre S a | B d)
+A ::= (?pre S | B d)
 
 S ::= 
-    | S1 a 
-    | S2 b
+    | S1: a
+    | S2: b
 
 """)).result
 fix_missing_locations(result)
-pprint(result)
+astpretty.pprint(result)
+analyzer = Analyzer()
+analyzer.visit(result)
+pprint.pprint(analyzer.type_info.type_tables)
+print(analyzer.type_map)

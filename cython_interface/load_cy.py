@@ -35,3 +35,40 @@ def compile_module(source_code: str, mod_name: str):
     mod = util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
+
+code = f"""
+# distutils: language = c++
+from libc.stdint cimport uint32_t, uint64_t, int64_t 
+from libcpp.vector cimport vector
+from libcpp.string cimport string
+import io
+
+ctypedef unsigned long size_t
+cimport cython
+
+cdef struct __G:
+    int flag
+
+
+cdef class G:
+    cdef __G __
+    def __init__(self, int flag):
+        self.__.flag = flag
+        
+    
+    property flag:
+        def __get__(self):
+            return self.__.flag
+        
+        def __set__(self, value: int):
+            self.__.flag = value
+
+ctypedef int64_t Int 
+
+"""
+
+mod = compile_module(code, 'test')
+print(mod.__dict__.keys())
+
+g = mod.G(2)
+
