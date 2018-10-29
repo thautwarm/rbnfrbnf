@@ -97,6 +97,7 @@ cdef class Token:
     cdef public char*    filename
     cdef public uint16_t type
     cdef public char*    value
+
     def __init__(self, offset, lineno, colno, filename, type, value):
         self.offset = offset
         self.lineno = lineno
@@ -135,6 +136,9 @@ class CythonTypeCodegen(_TypeSpecVisitor):
             ios(each.name)
             ios('\n')
         ios('\n')
+
+    def _def_vector(self, ty: List):
+        pass
 
     def _def_struct(self, ty_name, **fields):
         ios = self.ios
@@ -203,7 +207,3 @@ class CythonTypeCodegen(_TypeSpecVisitor):
 
         if isinstance(node.typ, (Primitive, ForwardRef)):
             pass
-
-
-def vector(typ: TypeSpec):
-    pass
