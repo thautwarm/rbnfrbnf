@@ -35,16 +35,19 @@ def compile_module(source_code: str, mod_name: str):
     spec.loader.exec_module(mod)
     return mod
 
-
-code = f"""
+"""
 # distutils: language = c++
-from cython.operator cimport dereference, preincrement
-from libc.stdint cimport uint16_t, uint32_t, uint64_t, int64_t, int32_t
-from libc.stdlib cimport malloc, free
+cimport cython
 from libcpp.vector cimport vector
 from libcpp.string cimport string
 import io
-ctypedef unsigned long size_t
-cimport cython
-        
 """
+
+code = f"""
+
+from cython.operator cimport dereference, preincrement
+from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t, int8_t, int64_t, int32_t
+from libc.stdlib cimport malloc, free
+ctypedef unsigned long size_t
+"""
+mod = compile_module(code, "test")
