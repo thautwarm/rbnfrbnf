@@ -3,8 +3,12 @@ import typing as t
 from enum import IntEnum
 from rbnfrbnf import constructs
 from python_passes.utils import visitor
+from cython_interface2.analysis import TypeAnalysis
+from cython_interface2.codegen import mk_type
+from cython_interface2.types import *
 from .lexer_analysis import *
-from .type_analysis import *
+import operator
+from toolz import compose, curry
 K = t.TypeVar('T')
 V = t.TypeVar('G')
 
@@ -15,10 +19,9 @@ def _cat(a, b):
 
 class Analysis(t.NamedTuple):
     lexer_table: t.List[Lexer]
-    type_info: TypeInfoCollector
+    type_collector: TypeAnalysis
     type_map: t.Dict[str, int]
     py_funcs: t.Dict[str, 'function']
-    enum_type: t.Type[IntEnum]
 
 
 class _AutoEnumDict(dict, t.Generic[K]):
@@ -34,7 +37,7 @@ class Analyzer(ast.NodeTransformer):
 
     lexer_descriptors: t.List[LexerDescriptor]
     type_map: _AutoEnumDict[str]
-    type_info: TypeInfoCollector
+    type_collector: TypeAnalysis
     py_funcs: t.Dict[str, 'function']
     # temporary state
 
@@ -46,21 +49,19 @@ class Analyzer(ast.NodeTransformer):
     def __init__(self, py_funcs: t.Dict[str, 'function'] = None):
         self.lexer_descriptors = []
         self.type_map = _AutoEnumDict()
-        self.type_info = TypeInfoCollector()
+        self.type_collector = TypeAnalysis()
         self.py_funcs = py_funcs or {}
 
     def analyzed(self) -> Analysis:
-        enum_type: t.Type[IntEnum] = type('EnumType', (IntEnum, ),
-                                          self.type_map)
         return Analysis(
-            lexer_reduce(self.lexer_descriptors), self.type_info,
-            {**self.type_map}, self.py_funcs, enum_type)
+            lexer_reduce(self.lexer_descriptors), self.type_collector,
+            {**self.type_map}, self.py_funcs)
 
     def typeid_of(self, typename: str):
         return self.type_map[typename]
 
     def visit_lexer_c(self, node: constructs.LexerC):
-        self.type_info.register_type(node.name, Primitive('Token'))
+        self.type_collector.define(node.name, Primitive('Token'))
         typeid = self.type_map[node.name]
 
         append = self.lexer_descriptors.append
@@ -77,34 +78,40 @@ class Analyzer(ast.NodeTransformer):
         self.current_members = {}
         name = self.current_parser_name = node.name
         self.visit(node.impl)
-        self.type_info.register_type(name, self.current_ty_spec)
+        self.type_collector.define(name, self.current_ty_spec)
         return node
 
     def visit_a_d_t_parser_c(self, node: constructs.ADTParserC):
         self.current_parser_case = {}
         self.generic_visit(node)
-        adt = ADT(self.current_parser_case)
+        adt = TaggedUnion(ImmutableMap.from_dict(self.current_parser_case))
         self.current_ty_spec = adt
         return node
 
     def visit_case_c(self, node: constructs.CaseC):
+        self.current_members = {}
         self.visit(node.impl)
         name = _cat(self.current_parser_name, node.name)
-        self.current_parser_case[name] = Struct(name, self.current_members)
+        self.current_parser_case[name] = Struct(
+            ImmutableMap.from_dict(self.current_members))
         return node
 
     def visit_or_parser_c(self, node: constructs.OrParserC):
         unions = []
-        union = Union(unions)
         for each in node.brs:
             self.visit(each)
             unions.append(self.current_ty_spec)
+
+        if len(set(unions)) is 1:
+            union = unions[0]
+        else:
+            union = Primitive('object')
+
         self.current_ty_spec = union
         return node
 
     def visit_and_parser_c(self, node: constructs.AndParserC):
         gathers = []
-        gather = Tuple(gathers)
         for each in node.pats:
             if isinstance(each, constructs.PredicateC):
                 continue
@@ -112,6 +119,8 @@ class Analyzer(ast.NodeTransformer):
             gathers.append(self.current_ty_spec)
         if len(gathers) is 1:
             gather = gathers[0]
+        else:
+            gather = Tuple(SizedList.from_list(gathers))
         self.current_ty_spec = gather
         return node
 
@@ -132,22 +141,23 @@ class Analyzer(ast.NodeTransformer):
 
     def visit_star_c(self, node: constructs.StarC):
         self.visit(node.expr)
-        self.current_ty_spec = Optional(List(self.current_ty_spec))
+        self.current_ty_spec = List(self.current_ty_spec)
 
     def visit_optional_c(self, node: constructs.OptionalC):
         self.visit(node)
-        self.current_ty_spec = Optional(self.current_ty_spec)
+        ty_spec = self.current_ty_spec
+        ty_spec = TaggedUnion(
+            ImmutableMap.from_dict({
+                'None': Primitive('object'),
+                'Some': ty_spec
+            }))
+
+        self.current_ty_spec = ty_spec
         return node
 
     def visit_rep_c(self, node: constructs.RepC):
         self.visit(node.expr)
-        container = List
-        if node.least is 0:
-
-            def container(it):
-                return Optional(container(it))
-
-        self.current_ty_spec = container(self.current_ty_spec)
+        self.current_ty_spec = List(self.current_ty_spec)
         return node
 
     def visit_ref_c(self, node: constructs.RefC):
@@ -158,7 +168,7 @@ class Analyzer(ast.NodeTransformer):
 
         def _get_return_ty(fn: 'function'):
             if fn:
-                return fn.__annotations__.get('return').__name__
+                return Primitive(fn.__annotations__.get('return').__name__)
 
         self.visit(node.expr)
         self.current_ty_spec = _get_return_ty(self.py_funcs.get(

@@ -1,7 +1,7 @@
 import typing as t
 
 from .fast_template import *
-from .load_cy import compile_module
+from cython_interface2.load_cy import compile_module
 
 K = t.TypeVar('K')
 V = t.TypeVar('V')

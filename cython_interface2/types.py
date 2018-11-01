@@ -12,8 +12,8 @@ def _type_spec(cls):
 
 def unique_encode(string: str):
     # unique encoding
-
-    return '_' + '_'.join(map(str, map(ord, string)))
+    return '_' + ''.join(each if each.isidentifier() else str(ord(each)) for each in string)
+    # return '_' + '_'.join(map(str, map(ord, string)))
 
 
 def unique_decode(encoded: str):

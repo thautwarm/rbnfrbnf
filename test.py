@@ -1,11 +1,13 @@
 import re
 import astpretty
 import pprint
+from rbnf.auto_lexer import lexing
 from rbnf.easy import Language, build_language, build_parser
 from ast import fix_missing_locations
 
+from cython_interface2.codegen import mk_mod
 from rbnfrbnf import constructs
-from rbnfrbnf.grammar_analysis.grammar_analyzer import Analyzer
+from rbnfrbnf.grammar_analysis.grammar_analyzer import Analyzer, mk_type
 with open('rbnf-bootstrap.rbnf') as f:
     code = f.read()
 
@@ -29,10 +31,13 @@ def add_semi_comma(text: str):
 
 
 result = parse(
-    add_semi_comma("""
-X := 'a'
-A ::= ('b' | 'c' ('c' | 'a'))
-Z ::= 'b'
+    add_semi_comma(r"""
+Num   := R'\d+'
+X     := 'a'
+Z     ::= 'b'
+Id    := R'[a-zA-Z_]{1}[a-zA-Z_0-9]*'
+Space := '\s+'
+
 F ::= 
     | Case1 : name << A => f ?pre1 
     | Case2 : ?pre2 B C
@@ -51,5 +56,9 @@ fix_missing_locations(result)
 astpretty.pprint(result)
 analyzer = Analyzer()
 analyzer.visit(result)
-pprint.pprint(analyzer.type_info.type_tables)
-print(analyzer.type_map)
+analyzed = analyzer.analyzed()
+analyzed.type_collector.resolve()
+print(analyzed.type_collector.mk_type().decode())
+print(analyzed.type_collector.types)
+print(mk_mod(analyzed.type_collector.mk_type()))
+

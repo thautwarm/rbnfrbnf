@@ -14,7 +14,7 @@ class LexerDescriptor(abc.ABC):
 
     @abc.abstractmethod
     def to_lexer(self) -> Lexer:
-        raise NotImplementedError
+        return self.to_lexer()
 
 
 class RegexLexerDescriptor(LexerDescriptor):
@@ -69,7 +69,7 @@ def lexer_reduce(lexer_descriptors: t.List[LexerDescriptor]) -> t.List[Lexer]:
         last = None
         for _e in stream:
             e = type(_e), _e.typeid
-            if grouped is None:
+            if last is None:
                 grouped = [_e]
                 _append = grouped.append
             elif last == e:
@@ -80,9 +80,11 @@ def lexer_reduce(lexer_descriptors: t.List[LexerDescriptor]) -> t.List[Lexer]:
                 _append = grouped.append
             last = e
         else:
-            yield (last, grouped)
+            if last:
+                yield (last, grouped)
 
-    groups = _chunk(lexer_descriptors)
+    groups = list(_chunk(lexer_descriptors))
+
     ret = []
     for (lexer_type, typeid), descriptors in groups:
 

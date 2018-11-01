@@ -10,7 +10,7 @@ setup(ext_modules=cythonize([$module]))
 """)
 
 
-def compile_module(source_code: str, mod_name: str):
+def compile_module(source_code: bytearray, mod_name: str):
     # TODO:
     # tempfile.TemporaryDirectory will close unexpectedly before removing the generated module.
     # Since that we don't delete the temporary dir as a workaround.
@@ -18,7 +18,7 @@ def compile_module(source_code: str, mod_name: str):
 
     dirname = tempfile.mkdtemp()
     mod_path = mod_name + '.pyx'
-    with open(os.path.join(dirname, mod_path), 'w') as pyx_file, open(
+    with open(os.path.join(dirname, mod_path), 'wb') as pyx_file, open(
             os.path.join(dirname, 'setup.py'), 'w') as setup_file:
         pyx_file.write(source_code)
         setup_file.write(template.substitute(module=repr(mod_path)))
@@ -34,20 +34,3 @@ def compile_module(source_code: str, mod_name: str):
     mod = util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
-
-"""
-# distutils: language = c++
-cimport cython
-from libcpp.vector cimport vector
-from libcpp.string cimport string
-import io
-"""
-
-code = f"""
-
-from cython.operator cimport dereference, preincrement
-from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t, int8_t, int64_t, int32_t
-from libc.stdlib cimport malloc, free
-ctypedef unsigned long size_t
-"""
-mod = compile_module(code, "test")
