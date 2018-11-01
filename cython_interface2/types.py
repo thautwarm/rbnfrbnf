@@ -41,8 +41,8 @@ class TaggedUnion(TypeSpec, t.NamedTuple):
     args: ImmutableMap[str, TypeSpec]
 
     def __repr__(self):
-        cases = ','.join(f'{ty!r}' for case, ty in self.args.items())
-        return f'Union[{cases}]'
+        cases = ','.join(f'{case} = {ty!r}' for case, ty in self.args.items())
+        return f'TaggedUnion[{cases}]'
 
 
 @_type_spec

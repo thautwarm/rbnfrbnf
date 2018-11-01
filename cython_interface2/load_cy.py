@@ -10,13 +10,13 @@ setup(ext_modules=cythonize([$module]))
 """)
 
 
-def compile_module(source_code: bytearray, mod_name: str):
+def compile_module(source_code: bytearray, mod_name: str, dirname: str = None):
     # TODO:
     # tempfile.TemporaryDirectory will close unexpectedly before removing the generated module.
     # Since that we don't delete the temporary dir as a workaround.
     mod_name = 'cythonextension_' + mod_name
 
-    dirname = tempfile.mkdtemp()
+    dirname = dirname or tempfile.mkdtemp()
     mod_path = mod_name + '.pyx'
     with open(os.path.join(dirname, mod_path), 'wb') as pyx_file, open(
             os.path.join(dirname, 'setup.py'), 'w') as setup_file:

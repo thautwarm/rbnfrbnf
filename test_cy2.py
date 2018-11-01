@@ -17,4 +17,4 @@ ana.define(
         ImmutableMap.from_dict(U_a=ForwardRef("B"), U_b=ForwardRef("A"))))
 
 ana.resolve()
-print(ana.mk_type().decode())
+print(ana.mk_types().decode())

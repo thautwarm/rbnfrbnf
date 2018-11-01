@@ -1,10 +1,9 @@
 from .analysis import *
-from .load_cy import compile_module
 import os
 import cython_imports
 
 
-def mk_type(self: TypeAnalysis):
+def mk_types(self: TypeAnalysis):
     with open(
             os.path.join(
                 os.path.split(cython_imports.__file__)[0], 'lexer.pyx'),
@@ -35,9 +34,11 @@ def mk_type(self: TypeAnalysis):
         if mangled_name in generated_set:
             return mangled_name
 
+
         generated_set.add(mangled_name)
         # tagged union generator
         if isinstance(ty, TaggedUnion):
+
             name = name or '<anonymous-union>'  # for __repr__
 
             def map_act(i: int, case_name: str, case_ty: TypeSpec):
@@ -67,9 +68,9 @@ def mk_type(self: TypeAnalysis):
             @pairs.iter
             def _(tp):
                 # make constructor
-                i, _, mangled_case_name = tp
-                write('cpdef {0}_cons_{1}_{2}({0} obj):\n'.format(
-                    mangled_case_name, mangled_name, i))
+                i, case_name, mangled_case_name = tp
+                write('cpdef {0}_cons_{1}({2} obj):\n'.format(
+                    mangled_name, case_name, mangled_case_name))
                 write(
                     'cdef %s inst = %s()\n' % (mangled_name, mangled_name),
                     indent=2)
@@ -185,8 +186,4 @@ def mk_type(self: TypeAnalysis):
     return buf
 
 
-def mk_mod(code: bytearray):
-    return compile_module(code, 'parser')
-
-
-TypeAnalysis.mk_type = mk_type
+TypeAnalysis.mk_types = mk_types

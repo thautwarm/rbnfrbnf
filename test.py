@@ -1,13 +1,12 @@
 import re
 import astpretty
 import pprint
-from rbnf.auto_lexer import lexing
 from rbnf.easy import Language, build_language, build_parser
 from ast import fix_missing_locations
-
-from cython_interface2.codegen import mk_mod
 from rbnfrbnf import constructs
-from rbnfrbnf.grammar_analysis.grammar_analyzer import Analyzer, mk_type
+from rbnfrbnf.grammar_analysis.grammar_analyzer import Analyzer, mk_types
+from cython_interface2.types import Struct, ImmutableMap
+
 with open('rbnf-bootstrap.rbnf') as f:
     code = f.read()
 
@@ -53,12 +52,16 @@ S ::=
 
 """)).result
 fix_missing_locations(result)
-astpretty.pprint(result)
+# astpretty.pprint(result)
 analyzer = Analyzer()
 analyzer.visit(result)
 analyzed = analyzer.analyzed()
 analyzed.type_collector.resolve()
-print(analyzed.type_collector.mk_type().decode())
-print(analyzed.type_collector.types)
-print(mk_mod(analyzed.type_collector.mk_type()))
 
+S = analyzed.type_collector.load_type('S')
+# print(analyzed.type_collector.mk_types().decode())
+pprint.pprint(list(analyzed.type_collector.mod.__dict__.keys()))
+
+S1 = analyzed.type_collector.load_constructor('S', 'S1')
+empty_struct_type = analyzed.type_collector.load_type(Struct(ImmutableMap(())))
+print(isinstance(S1(empty_struct_type()), S))

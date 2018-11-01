@@ -4,7 +4,7 @@ from enum import IntEnum
 from rbnfrbnf import constructs
 from python_passes.utils import visitor
 from cython_interface2.analysis import TypeAnalysis
-from cython_interface2.codegen import mk_type
+from cython_interface2.codegen import mk_types
 from cython_interface2.types import *
 from .lexer_analysis import *
 import operator
@@ -91,8 +91,8 @@ class Analyzer(ast.NodeTransformer):
     def visit_case_c(self, node: constructs.CaseC):
         self.current_members = {}
         self.visit(node.impl)
-        name = _cat(self.current_parser_name, node.name)
-        self.current_parser_case[name] = Struct(
+        case_name = node.name
+        self.current_parser_case[case_name] = Struct(
             ImmutableMap.from_dict(self.current_members))
         return node
 
