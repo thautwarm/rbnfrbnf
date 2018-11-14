@@ -1,0 +1,31 @@
+{
+    "nodes": [
+        {
+            "parity": 1, 
+            "katz": 0.22874804284096154, 
+            "id": 0, 
+            "degree": 8
+        }, 
+        {
+            "parity": 0, 
+            "katz": 0.17413026830641998, 
+            "id": 1, 
+            "degree": 5
+        }
+    ],
+
+    "links": [
+        {
+            "source": 0, 
+            "target": 3
+        }, 
+        {
+            "source": 0, 
+            "target": 4
+        }, 
+        {
+            "source": 0, 
+            "target": 6
+        },
+    ]
+}
