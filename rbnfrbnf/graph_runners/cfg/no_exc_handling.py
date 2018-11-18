@@ -84,7 +84,21 @@ def run_graph(tokens: List[Token], start: Identified):
 
             elif ty is NonTerminalEnd:
                 assert isinstance(current, NonTerminalEnd)
-                result = (current.name, result), ()
+                head = ()
+                pack = current.pack
+                if pack is 1:
+                    # In shift-reduce algo, many pack num is 1,
+                    # which could cause a severe performance problem.
+                    # For above we do this corner case if-else.
+                    sub_result, result = result
+                    head = (sub_result, ())
+                else:
+                    for _ in range(pack):
+                        sub_result, result = result
+                        head = (sub_result, head)
+
+                head = (current.name, head)
+                result = (head, result)
                 parent = current.parent
                 if parent:
                     current = parent
@@ -93,9 +107,10 @@ def run_graph(tokens: List[Token], start: Identified):
 
             elif ty is SubRoutine:
                 assert isinstance(current, SubRoutine)
-                sub_result = call_subroutine(current.root)
+                root = current.root
+                sub_result = call_subroutine(root)
                 if sub_result is not fail_token:
-                    result = (sub_result, result)
+                    result = (root.name, sub_result), result
                     parent = current.parent
                     if parent:
                         current = parent
@@ -108,5 +123,5 @@ def run_graph(tokens: List[Token], start: Identified):
 
     a = call_subroutine(start)
     if a:
-        return a
+        return start.name, a
     raise Exception

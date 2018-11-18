@@ -1,24 +1,47 @@
-from .syntax_graph import Node, Identified, SubRoutine, NamedTerminal, UnnamedTerminal, NonTerminalEnd, TerminalEnd, Dispatcher
-from .tokenizer import Token, InternedString
-from typing import List
+from rbnfrbnf.core.syntax_graph import Identified, SubRoutine, NamedTerminal, UnnamedTerminal, NonTerminalEnd, TerminalEnd, Dispatcher
+from rbnfrbnf.core.tokenizer import Token, InternedString
 from rbnfrbnf import linked_lst
+from typing import List
 
 
-class State:
-    tokens: List[Token]
-    offset: int
+class ParserResult:
+    _offset: int
+    _value: object
+
+    def __init__(self, offset: int, value: object):
+        self._offset = offset
+        self._value = value
+
+    @property
+    def is_succeeded(self):
+        return self._value is _fail_token
+
+    @property
+    def max_fetched(self):
+        if self._value is _fail_token:
+            return self._offset
+        raise ValueError(
+            "max_fetched_offset is available only if the parsing failed.")
+
+    @property
+    def get(self):
+        if self._value is not _fail_token:
+            return self._value
+        raise ValueError("result is available only if the parsing succeeded.")
 
 
-def make_token(s: str, t: int = 0):
-    return Token(0, 1, 2, 'sss', t, InternedString(s))
+_fail_token = object()
 
 
 def run_graph(tokens: List[Token], start: Identified):
     offset = 0
+    max_fetched_offset = 0
     fail_token = object()
+    reverse = linked_lst.reverse
+    iterate = linked_lst.iterate
 
     def call_subroutine(identified: Identified):
-        nonlocal offset
+        nonlocal offset, max_fetched_offset
         histories = offset, ()
         result = ()
         results = fail_token, ()
@@ -64,6 +87,7 @@ def run_graph(tokens: List[Token], start: Identified):
                 assert isinstance(current, Dispatcher)
                 histories = offset, histories
                 results = result, results
+                max_fetched_offset = max_fetched_offset if max_fetched_offset > offset else offset
                 push_stack.append(iter(current.parents))
                 current = None
 
@@ -94,7 +118,21 @@ def run_graph(tokens: List[Token], start: Identified):
 
             elif ty is NonTerminalEnd:
                 assert isinstance(current, NonTerminalEnd)
-                result = (current.name, result), ()
+                head = ()
+                pack = current.pack
+                if pack is 1:
+                    # In shift-reduce algo, many pack num is 1,
+                    # which could cause a severe performance problem.
+                    # For above we do this corner case if-else.
+                    sub_result, result = result
+                    head = (sub_result, ())
+                else:
+                    for _ in range(pack):
+                        sub_result, result = result
+                        head = (sub_result, head)
+
+                head = (current.name, *iterate(reverse(head)))
+                result = (head, result)
                 parent = current.parent
                 if parent:
                     current = parent
@@ -103,9 +141,10 @@ def run_graph(tokens: List[Token], start: Identified):
 
             elif ty is SubRoutine:
                 assert isinstance(current, SubRoutine)
-                sub_result = call_subroutine(current.root)
+                root = current.root
+                sub_result = call_subroutine(root)
                 if sub_result is not fail_token:
-                    result = (sub_result, result)
+                    result = (root.name, *iterate(reverse(sub_result))), result
                     parent = current.parent
                     if parent:
                         current = parent
@@ -118,5 +157,5 @@ def run_graph(tokens: List[Token], start: Identified):
 
     a = call_subroutine(start)
     if a:
-        return a
-    raise Exception
+        return ParserResult(offset, (start.name, *iterate(reverse(a))))
+    raise ParserResult(max_fetched_offset, fail_token)

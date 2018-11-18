@@ -50,7 +50,7 @@ class NamedNonTerminal(NonTerminal):
 
 
 @record
-class Chain(NonTerminal):
+class Chain(Node):
     l: Node
     r: Node
 
@@ -66,15 +66,16 @@ class Chain(NonTerminal):
 
 
 @record
-class NonTerminalEnd(Node):
+class NonTerminalEnd(NonTerminal):
     name: str
+    pack: int
 
     def __repr__(self):
-        return '$%s' % self.name
+        return '$%s take %d' % (self.name, self.pack)
 
 
 @record
-class TerminalEnd(Node):
+class TerminalEnd(NonTerminal):
 
     def __repr__(self):
         return r'$\epsilon$'

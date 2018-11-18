@@ -199,7 +199,7 @@ def _(node: Chain, ctx: ContextForIR3):
 
 @build_graph.register(NonTerminalEnd)
 def _(node: NonTerminalEnd, ctx: ContextForIR3):
-    node = syntax_graph.NonTerminalEnd(node.name)
+    node = syntax_graph.NonTerminalEnd(node.name, node.pack)
     ctx.all_nodes.add(node)
     return [node]
 

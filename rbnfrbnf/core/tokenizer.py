@@ -39,7 +39,7 @@ class Token:
         if self._repr is None:
             self._repr = "Token(offset=%d, lineno=%d, colno=%d, filename=%s, type=%d, value=%s)" % (
                 self.offset, self.lineno, self.colno, self.filename, self.type,
-                self.value.s)
+                repr(self.value.s))
         return self._repr
 
 

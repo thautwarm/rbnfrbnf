@@ -23,6 +23,25 @@ class ContextForIR2:
         self.resume.pop()()
 
 
+def reduce_num(node):
+    if isinstance(node, Terminal):
+        return 1
+
+    if isinstance(node, NamedNonTerminal):
+        return 1
+
+    if isinstance(node, NonTerminalEnd):
+        return -node.pack + 1
+
+    if isinstance(node, Chain):
+        n_l = reduce_num(node.l)
+        n_r = reduce_num(node.r)
+        return n_l + n_r
+    if isinstance(node, TerminalEnd):
+        return 0
+    raise TypeError(type(node))
+
+
 @singledispatch
 def terminate(node: Node, _):
     return node,
@@ -37,7 +56,7 @@ def _(node: NamedNonTerminal, ctx: ContextForIR2):
     with ctx.enter(name):
 
         return tuple(
-            Chain(each, NonTerminalEnd(name))
+            Chain(each, NonTerminalEnd(name, reduce_num(each)))
             for each in sum((terminate(each, ctx)
                              for each in ctx.imp[name].children), ()))
 
@@ -57,6 +76,5 @@ def _(node: Identified, ctx: ContextForIR2):
     with ctx.enter(name):
         for each in node.children:
             res.extend(terminate(each, ctx))
-    # res = [Chain(each, NonTerminalEnd(name)) for each in res]
     ret = ctx.imp[name] = Identified(name, tuple(res))
     return ret

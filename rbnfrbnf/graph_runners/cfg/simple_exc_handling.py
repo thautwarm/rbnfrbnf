@@ -34,8 +34,8 @@ _fail_token = object()
 
 def run_graph(tokens: List[Token], start: Identified):
     offset = 0
-    fail_token = _fail_token
     max_fetched_offset = 0
+    fail_token = object()
 
     def call_subroutine(identified: Identified):
         nonlocal offset, max_fetched_offset
@@ -83,8 +83,8 @@ def run_graph(tokens: List[Token], start: Identified):
             if ty is Dispatcher:
                 assert isinstance(current, Dispatcher)
                 histories = offset, histories
-                max_fetched_offset = max_fetched_offset if max_fetched_offset > offset else offset
                 results = result, results
+                max_fetched_offset = max_fetched_offset if max_fetched_offset > offset else offset
                 push_stack.append(iter(current.parents))
                 current = None
 
@@ -115,7 +115,21 @@ def run_graph(tokens: List[Token], start: Identified):
 
             elif ty is NonTerminalEnd:
                 assert isinstance(current, NonTerminalEnd)
-                result = (current.name, result), ()
+                head = ()
+                pack = current.pack
+                if pack is 1:
+                    # In shift-reduce algo, many pack num is 1,
+                    # which could cause a severe performance problem.
+                    # For above we do this corner case if-else.
+                    sub_result, result = result
+                    head = (sub_result, ())
+                else:
+                    for _ in range(pack):
+                        sub_result, result = result
+                        head = (sub_result, head)
+
+                head = (current.name, head)
+                result = (head, result)
                 parent = current.parent
                 if parent:
                     current = parent
@@ -124,9 +138,10 @@ def run_graph(tokens: List[Token], start: Identified):
 
             elif ty is SubRoutine:
                 assert isinstance(current, SubRoutine)
-                sub_result = call_subroutine(current.root)
+                root = current.root
+                sub_result = call_subroutine(root)
                 if sub_result is not fail_token:
-                    result = (sub_result, result)
+                    result = (root.name, sub_result), result
                     parent = current.parent
                     if parent:
                         current = parent
@@ -139,5 +154,5 @@ def run_graph(tokens: List[Token], start: Identified):
 
     a = call_subroutine(start)
     if a:
-        return ParserResult(offset, a)
-    return ParserResult(max_fetched_offset, fail_token)
+        return ParserResult(offset, (start.name, a))
+    raise ParserResult(max_fetched_offset, fail_token)

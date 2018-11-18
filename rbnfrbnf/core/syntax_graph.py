@@ -100,13 +100,14 @@ class NamedTerminal(SingleNext):
 
 class NonTerminalEnd(SingleNext):
 
-    def __init__(self, name):
+    def __init__(self, name, pack):
         self.name = name
+        self.pack = pack
         self.parent = None
         self.children = []
 
     def __repr__(self):
-        return '(endOf %s)' % self.name
+        return '(endOf %s, pack %d)' % (self.name, self.pack)
 
 
 class TerminalEnd(SingleNext):
