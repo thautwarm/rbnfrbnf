@@ -1,14 +1,11 @@
 from rbnf.easy import Language, build_language, build_parser
-from rbnfrbnf import constructs
-from rbnfrbnf.graph_ir1 import build_mid_graph, ContextForIR1
-from rbnfrbnf.graph_ir2 import ContextForIR2, terminate
-from rbnfrbnf.graph_ir3 import prune, ContextForIR3, build_graph
-from rbnfrbnf.lexer_analysis import lexer_reduce
-from rbnfrbnf.tokenizer import lexing
-from rbnfrbnf.run_graph import run_graph
-from rbnfrbnf import syntax_graph
-from rbnfrbnf import linked_lst
-from rbnfrbnf.utils import nested_map
+from rbnfrbnf.core import constructs, syntax_graph
+from rbnfrbnf.passes.graph_ir1 import build_mid_graph, ContextForIR1
+from rbnfrbnf.passes.graph_ir2 import ContextForIR2, terminate
+from rbnfrbnf.passes.graph_ir3 import prune, ContextForIR3, build_graph
+from rbnfrbnf.core.lexer_analysis import lexer_reduce
+from rbnfrbnf.core.tokenizer import lexing
+from rbnfrbnf.graph_runners.cfg.no_exc_handling import run_graph
 from tools.plot_d3 import plot_graph
 import re
 import pprint

@@ -1,6 +1,6 @@
 import networkx
 from matplotlib import pyplot as plt
-from rbnfrbnf.syntax_graph import *
+from rbnfrbnf.core.syntax_graph import *
 from typing import List
 
 

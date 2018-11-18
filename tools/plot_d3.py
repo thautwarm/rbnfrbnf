@@ -1,7 +1,5 @@
-import networkx
-from matplotlib import pyplot as plt
-from rbnfrbnf.syntax_graph import *
-from rbnfrbnf.utils import IdAllocator
+from rbnfrbnf.core.syntax_graph import *
+from rbnfrbnf.core.utils import IdAllocator
 from tools.data_schema import *
 from typing import List
 
