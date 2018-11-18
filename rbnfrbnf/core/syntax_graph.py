@@ -90,7 +90,7 @@ class NamedTerminal(SingleNext):
 
     def __init__(self, typeid, name=None):
         self.typeid = typeid
-        self.name = name or '<nameOf %d)' % typeid
+        self.name = name or '(nameOf %d)' % typeid
         self.parent = None
         self.children = []
 
@@ -106,7 +106,7 @@ class NonTerminalEnd(SingleNext):
         self.children = []
 
     def __repr__(self):
-        return '<endOf %s>' % self.name
+        return '(endOf %s)' % self.name
 
 
 class TerminalEnd(SingleNext):
@@ -116,7 +116,7 @@ class TerminalEnd(SingleNext):
         self.children = []
 
     def __repr__(self):
-        return '<empty>'
+        return '(empty)'
 
 
 class Dispatcher(MultiNext):
@@ -128,7 +128,7 @@ class Dispatcher(MultiNext):
         self.children = []
 
     def __repr__(self):
-        return '<dispatcher>'
+        return '(dispatcher)'
 
 
 def get_leaves(*nodes) -> t.List[Node]:
