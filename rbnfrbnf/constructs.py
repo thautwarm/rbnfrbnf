@@ -44,31 +44,7 @@ class OrParserC(Node):
         super().__init__()
         self.brs = brs
 
-    _fields = ('brs', )
-
-
-class CaseC(Node):
-    name: str
-    impl: Node
-
-    def __init__(self, name, impl):
-        super().__init__()
-        self.lineno = name.lineno
-        self.col_offset = name.colno
-        self.name = name.value
-        self.impl = impl
-
-    _fields = ('name', 'impl')
-
-
-class ADTParserC(Node):
-    cases: t.List[CaseC]
-
-    def __init__(self, cases):
-        super().__init__()
-        self.cases = cases
-
-    _fields = ('cases', )
+    _fields = ('brs',)
 
 
 class AndParserC(Node):
@@ -78,7 +54,7 @@ class AndParserC(Node):
         super().__init__()
         self.pats = pats
 
-    _fields = ('pats', )
+    _fields = ('pats',)
 
 
 class RepC(Node):
@@ -99,94 +75,36 @@ class RepC(Node):
 
 
 class OptionalC(Node):
-
     expr: Node
 
     def __init__(self, expr: Node):
         super().__init__()
         self.expr = expr
 
-    _fields = ('expr', )
+    _fields = ('expr',)
 
 
 class StarC(Node):
-
     expr: Node
 
     def __init__(self, expr: Node):
         super().__init__()
         self.expr = expr
 
-    _fields = ('expr', )
+    _fields = ('expr',)
 
 
 class PlusC(Node):
-
     expr: Node
 
     def __init__(self, expr: Node):
         super().__init__()
         self.expr = expr
 
-    _fields = ('expr', )
-
-
-class RewriteC(Node):
-    rewrite: str
-    expr: Node
-
-    def __init__(self, rewrite: Tokenizer, expr: Node):
-        super().__init__()
-        self.lineno = rewrite.lineno
-        self.col_offset = rewrite.colno
-        self.rewrite = rewrite.value
-        self.expr = expr
-
-    _fields = ('expr', 'rewrite')
-
-
-class PredicateC(Node):
-    predicate: str
-
-    def __init__(self, predicate: Tokenizer):
-        super().__init__()
-        self.lineno = predicate.lineno
-        self.col_offset = predicate.colno
-        self.predicate = predicate.value
-
-    _fields = ('predicate', )
-
-
-class BindC(Node):
-    bind_name: str
-    expr: Node
-
-    def __init__(self, predicate: Tokenizer, expr: Node):
-        super().__init__()
-        self.lineno = predicate.lineno
-        self.col_offset = predicate.colno
-        self.bind_name = predicate.value
-        self.expr = expr
-
-    _fields = ('expr', 'bind_name')
-
-
-class PushC(Node):
-    bind_name: str
-    expr: Node
-
-    def __init__(self, predicate: Tokenizer, expr: Node):
-        super().__init__()
-        self.lineno = predicate.lineno
-        self.col_offset = predicate.colno
-        self.bind_name = predicate.value
-        self.expr = expr
-
-    _fields = ('expr', 'bind_name')
+    _fields = ('expr',)
 
 
 class RefC(Node):
-
     sym: str
 
     def __init__(self, sym: Tokenizer):
@@ -195,7 +113,7 @@ class RefC(Node):
         self.lineno = sym.lineno
         self.col_offset = sym.colno
 
-    _fields = ('sym', )
+    _fields = ('sym',)
 
 
 class LiteralC(Node):
@@ -224,4 +142,4 @@ class ModuleC(Node):
         super().__init__()
         self.seqs = seqs
 
-    _fields = ('seqs', )
+    _fields = ('seqs',)

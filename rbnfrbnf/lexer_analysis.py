@@ -1,3 +1,4 @@
+from .utils import InternedString
 import re
 import abc
 import typing as t
@@ -14,7 +15,7 @@ class LexerDescriptor(abc.ABC):
 
     @abc.abstractmethod
     def to_lexer(self) -> Lexer:
-        raise NotImplementedError
+        return self.to_lexer()
 
 
 class RegexLexerDescriptor(LexerDescriptor):
@@ -26,13 +27,14 @@ class RegexLexerDescriptor(LexerDescriptor):
     def to_lexer(self):
         match = re.compile(self.contents).match
         typeid = self.typeid
+        box = InternedString
 
         def lex(string, pos):
             m = match(string, pos)
             if m:
-                return typeid, m.group()
+                return box(m.group())
 
-        return lex
+        return typeid, lex
 
 
 class LiteralLexerDescriptor(LexerDescriptor):
@@ -45,23 +47,25 @@ class LiteralLexerDescriptor(LexerDescriptor):
     def to_lexer(self):
         pats = self.contents
         typeid = self.typeid
+        make_interned = InternedString
         if len(pats) is 1:
             pats = pats[0]
 
             def lex(string: str, pos):
                 if string.startswith(pats, pos):
-                    return typeid, pats
+                    return make_interned(pats, typeid)
         else:
 
             def lex(string: str, pos):
                 for pat in pats:
                     if string.startswith(pat, pos):
-                        return typeid, pat
+                        return make_interned(pat, typeid)
 
-        return lex
+        return typeid, lex
 
 
-def lexer_reduce(lexer_descriptors: t.List[LexerDescriptor]) -> t.List[Lexer]:
+def lexer_reduce(
+        lexer_descriptors: t.List[LexerDescriptor]) -> t.List[LexerDescriptor]:
 
     def _chunk(stream: t.Iterable[LexerDescriptor]):
         grouped = []
@@ -69,7 +73,7 @@ def lexer_reduce(lexer_descriptors: t.List[LexerDescriptor]) -> t.List[Lexer]:
         last = None
         for _e in stream:
             e = type(_e), _e.typeid
-            if grouped is None:
+            if last is None:
                 grouped = [_e]
                 _append = grouped.append
             elif last == e:
@@ -80,19 +84,21 @@ def lexer_reduce(lexer_descriptors: t.List[LexerDescriptor]) -> t.List[Lexer]:
                 _append = grouped.append
             last = e
         else:
-            yield (last, grouped)
+            if last:
+                yield (last, grouped)
 
-    groups = _chunk(lexer_descriptors)
+    groups = list(_chunk(lexer_descriptors))
+
     ret = []
     for (lexer_type, typeid), descriptors in groups:
 
         if lexer_type is RegexLexerDescriptor:
-            ret.extend(map(LexerDescriptor.to_lexer, descriptors))
+            ret.extend(descriptors)
         else:
             assert lexer_type is LiteralLexerDescriptor
             descriptors: t.List[LiteralLexerDescriptor]
             contents = sum(tuple(each.contents for each in descriptors), ())
 
-            ret.append(LiteralLexerDescriptor(typeid, *contents).to_lexer())
+            ret.append(LiteralLexerDescriptor(typeid, *contents))
 
     return ret

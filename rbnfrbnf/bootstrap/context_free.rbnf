@@ -1,0 +1,52 @@
+# lexer definition
+auto_const := '::=' ':=' '<<' '->' '=>'
+auto_const := '=' '<' '>' '/' '|' '{' '}' '[' ']' '(' ')' '+' '*' '.' ',' ';' '?' ':'
+Str        := R'[A-Z]\'([^\\\']+|\\.)*?\'|\'([^\\\']+|\\.)*?\''
+Name       := R'[a-zA-Z_\u4e00-\u9fa5][a-zA-Z0-9_\u4e00-\u9fa5]*'
+Int        := R'\d+'
+Space      := R'\s+'
+Comment    := R'(#.*)|(((/\*)+?[\w\W]+?(\*/)+))'
+kword cast := 'rewrite' 'when' 'import' 'extern' 'constvalue' 'recur'
+
+# helper parser definition
+ignore [Comment Space]
+
+# syntax node parser definition
+Lexer      ::=
+    [is_const='constvalue'] name=Name ':=' (lexers=Str+ | extern_mark='extern') ';'
+    -> LexerC(name, extern_mark or [LiteralC(lexer) for lexer in lexers], bool(is_const))
+
+Parser    ::=
+    name=Name '::='
+    ['|']
+    impl=OrParser
+    ';'
+    -> ParserC(name, impl)
+
+OrParser ::=
+    brs<<AndParser ('|' brs<<AndParser)*
+    -> OrParserC(brs) if len(brs) is not 1 else brs[0]
+
+AndParser ::=
+    exprs=Expr+
+    -> AndParserC(exprs) if len(exprs) is not 1 else exprs[0]
+
+Expr ::=
+    | '(' nested=OrParser ')'
+    | atom=Atom
+    ->
+        if nested:
+            return nested
+        # if atom:
+        return atom
+
+Atom ::=
+    | ref=Name
+    | literal=Str
+    ->
+        if ref :
+            return RefC(ref)
+        if literal:
+            return LiteralC(literal)
+
+Module ::= (';' | suites <<(Lexer | Parser))+ -> ModuleC(suites);

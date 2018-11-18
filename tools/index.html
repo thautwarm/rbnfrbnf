@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<style>
+text {
+    font-family: sans-serif;
+    font-size: 10px;
+}
+
+.nodes circle {
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+</style>
+<script>
+
+
+const scale = d3.scaleOrdinal(d3.schemeCategory20);
+
+d3.json("graph.json", function(error, graph){
+    console.log(graph);
+    if (error) throw error;
+    const height = graph.height;
+    const width  = graph.width;
+    const links = graph.data.links.map(d => Object.create(d));
+    const nodes = graph.data.nodes.map(d => Object.create(d));
+
+    var simulation =
+        d3.forceSimulation(nodes)
+          .force("link", d3.forceLink(links).id(d => d.id))
+          .force("charge", d3.forceManyBody())
+          .force("center", d3.forceCenter())
+          .on("tick", ticked);
+
+    var svg =
+        d3
+        .select("body")
+        .append("svg")
+        .attr("viewBox", [-width/2, -height/2, width, height]);
+
+    svg.append("svg:defs").append("svg:marker")
+    .attr("id", "arrow")
+    .attr("viewBox", "0 -5 10 10")
+    .attr('refX', -20)
+    .attr("markerWidth", 5)
+    .attr("markerHeight", 5)
+    .attr("orient", "auto")
+    .append("svg:path")
+    .attr("d", "M0,-5L10,0L0,5");
+
+    arrows = svg.selectAll("line.link")
+      .data(links)
+      .enter()
+      .append("path")
+      .attr("class", "link")
+      .style("stroke", "#FAA")
+      .attr('marker-start', d => "url(#arrow)")
+      .style("stroke-width", 1);
+
+    var link = svg
+      .append("g")
+      .attr("stroke", "#999")
+      .attr("stroke-opacity", 0.6)
+      .selectAll("line")
+      .data(links)
+      .enter()
+      .append("line")
+      .attr("stroke-width", d => Math.sqrt(d.value));
+
+    const node = svg
+      .append("g")
+      .attr("class", "nodes")
+      .selectAll("g")
+      .data(nodes)
+      .enter()
+      .append("g")
+
+    const circle = node
+      .append("circle")
+      .attr("r", d => d.size)
+      .attr("fill", d => d.color)
+      .call(d3
+          .drag()
+          .on("start", dragstarted)
+          .on("drag", dragged)
+          .on("end", dragended));
+
+    node.append("text").text(d => d.text).attr('x', 6).attr('y', 3);
+    node.append("title").text(d => d.title);
+
+
+    function ticked() {
+        link
+            .attr("x1", d => d.source.x)
+            .attr("y1", d => d.source.y)
+            .attr("x2", d => d.target.x)
+            .attr("y2", d => d.target.y);
+
+        node
+            .attr("transform", d => "translate(" + d.x + "," + d.y + ")")
+
+        arrows
+            .attr("d", d => "M" + d.source.x + "," + d.source.y + ", " + d.target.x + "," + d.target.y)
+
+      }
+
+    function dragstarted(d) {
+    if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+    d.fx = d.x;
+    d.fy = d.y;
+    }
+
+    function dragged(d) {
+    d.fx = d3.event.x;
+    d.fy = d3.event.y;
+    }
+
+    function dragended(d) {
+    if (!d3.event.active) simulation.alphaTarget(0);
+    d.fx = null;
+    d.fy = null;
+    }
+
+});
+
+</script>
+
+<body>
+    
+<div id="d3-container"> </div>
+
+</body>
