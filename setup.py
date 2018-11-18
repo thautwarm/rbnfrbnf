@@ -17,6 +17,7 @@ setup(
     packages=find_packages(),
     # entry_points={'console_scripts': ['yapypy=yapypy.cmd.cli:python_ex_cli']},
     install_requires=['rbnf'],
+    package_data={'rbnfrbnf': ['bootstrap/*.rbnf']},
     platforms='any',
     classifiers=[
         'Programming Language :: Python :: 3.6',
