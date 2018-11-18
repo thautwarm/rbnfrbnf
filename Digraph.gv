@@ -1,7 +1,0 @@
-digraph {
-	A [label=AA]
-	B [label=BB]
-	L [label=LL]
-	A -> B
-	B -> L
-}
